@@ -213,7 +213,8 @@ if __name__ == "__main__":
 	
 	# Plot minute price data with moving averages
 	ax1.plot(bars.index, bars.Close, color='r', lw=2.) #line graph of bars.Close
-	ax1.plot(bars.index, ema.short_mavg, 'b', bars.index, ema.long_mavg, 'g',lw=2.) #line graph of moving averages
+	sma_line, = ax1.plot(bars.index, ema.short_mavg, 'b', lw=2.)
+	lma_line, = ax1.plot(bars.index, ema.long_mavg, 'g', lw=2.)
 	
 	# Plot the buy and sell trades against symbol
 	buy_signals, = ax1.plot(signals.ix[signals.signal == 1.0].index, bars.Close[signals.signal == 1.0], '^', markersize=10, color='m')
@@ -246,17 +247,28 @@ if __name__ == "__main__":
 	
 	# Create sliders
 	slider_color = 'lightgoldenrodyellow'
-	axrsi = plt.axes([0.2, 0.1, 0.6, 0.03], axisbg=slider_color)
-	axmacd = plt.axes([0.2, 0.07, 0.6, 0.03], axisbg=slider_color)
-	srsi = mw.Slider(axrsi, 'RSI Period', 1, long_window, valinit=100)
-	smacd = mw.Slider(axmacd, 'MACD Signal Period', 1, long_window, valinit=50)
+	axsma = plt.axes([0.2, 0.13, 0.6, 0.03], axisbg=slider_color)
+	axlma = plt.axes([0.2, 0.1, 0.6, 0.03], axisbg=slider_color)
+	axrsi = plt.axes([0.2, 0.07, 0.6, 0.03], axisbg=slider_color)
+	axmacd = plt.axes([0.2, 0.04, 0.6, 0.03], axisbg=slider_color)
+	
+	ssma = mw.Slider(axsma, 'Short Moving Average Period', 1, 390, valinit=short_window)
+	slma = mw.Slider(axlma, 'Long Moving Average Period', 1, 390, valinit=long_window)
+	srsi = mw.Slider(axrsi, 'RSI Period', 1, 390, valinit=100)
+	smacd = mw.Slider(axmacd, 'MACD Signal Period', 1, 390, valinit=50)
 	
 	def update(val):
+		sma_val = int(round(ssma.val))
+		lma_val = int(round(slma.val))
 		rsi_val = int(round(srsi.val))
 		macd_val = int(round(smacd.val))
+		technicals.short_window = sma_val
+		technicals.long_window = lma_val
 		technicals.rsi_per = rsi_val
 		technicals.macd_per = macd_val
-		ema, new_rsi, new_macd = technicals.generate_analysis()
+		new_ema, new_rsi, new_macd = technicals.generate_analysis()
+		sma_line.set_ydata(new_ema.short_mavg)
+		lma_line.set_ydata(new_ema.long_mavg)
 		rsi_line.set_ydata(new_rsi)
 		mac.rsi = new_rsi
 		mac.macd = new_macd
@@ -274,7 +286,9 @@ if __name__ == "__main__":
 		buy_returns.set_data(new_returns.ix[signals.signal == 1.0].index, new_returns.total[signals.signal == 1.0])
 		sell_returns.set_data(new_returns.ix[signals.signal == -1.0].index, new_returns.total[signals.signal == -1.0])
 		plt.draw()
-		
+	
+	ssma.on_changed(update)
+	slma.on_changed(update)	
 	srsi.on_changed(update)
 	smacd.on_changed(update)
 	
@@ -282,7 +296,9 @@ if __name__ == "__main__":
 	fig.subplots_adjust(hspace=0, bottom=0.25)
 	plt.show()
 	fig.savefig(r"C:/users/gph/desktop/tradingalgorithm/{}_{}EMA_cross_{}ewmaRSI_backtest.png".format(short_window, long_window, technicals.rsi_per))
-	print(technicals.rsi_per)
+	
+	# Calculate final dataframe values based on slider locations
+	ema, rsi, macd = technicals.generate_analysis()
 	signals = mac.generate_signals()
 	portfolio = MarketOnClosePortfolio(symbol, bars, signals)
 	returns = portfolio.backtest_portfolio()
