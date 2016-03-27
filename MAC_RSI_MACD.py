@@ -77,7 +77,7 @@ class TechnicalAnalysis(Analysis):
 		
 		return ema, rsi, macd
 		
-class MovingCrossRSIMACD(Strategy):
+class Strategy(Strategy):
 	"""
 	Requires:
 	symbol - A stock symbol on which to form a strategy on.
@@ -95,40 +95,11 @@ class MovingCrossRSIMACD(Strategy):
 		self.macd = macd
 	
 	def generate_signals(self):
-		''Returns the DataFrame of symbols containing the signals
-		to go long, short or hold (1, -1 or 0).''
+		'''Returns the DataFrame of symbols containing the signals
+		to go long, short or hold (1, -1 or 0). This is where you
+		would implement any form of algorithm you can dream up.'''
 	
-		signals = pd.DataFrame(index=self.bars.index)
-		signals['signal'] = 0.0 
-		signals['mavg_signal'] = 0.0
-		signals['rsi_signal'] = 0.0
-		signals['macd_signal'] = 0.0
-		signals['positions'] = 0.0
 		
-		# Create a 'signal' (invested or not invested) when the short moving average crosses the long, 
-		# rsi is above or below 70,30 and macd signal crosses 0
-		signals.mavg_signal[self.short_window:] = np.where(self.ema.short_mavg[self.short_window:] > self.ema.long_mavg[self.short_window:], 1.0, -1.0)
-		signals.rsi_signal[self.rsi > 70] = -1.0
-		signals.rsi_signal[self.rsi < 30] = 1.0
-		signals.macd_signal[self.macd.signal < 0] = -1.0
-		signals.macd_signal[self.macd.signal > 0] = 1.0
-		
-		# Process Buy signals and closing of open long positions
-		signals.signal[(signals.mavg_signal > 0) & (signals.rsi_signal > 0)] =  1.0
-		signals.positions = signals.signal.cumsum()
-		signals.signal[(signals.positions > 1.0) & (signals.mavg_signal > 0) & (signals.rsi_signal > 0)] = 0.0
-		signals.positions = signals.signal.cumsum()
-		signals.signal[(signals.positions > 0) & (signals.macd_signal.diff() == -2.0)] = -1.0
-		signals.positions = signals.signal.cumsum()
-		
-		#Process Sell signals ans closing of open short positions
-		signals.signal[(signals.mavg_signal < 0) & (signals.rsi_signal < 0)] = -1.0
-		signals.positions = signals.signal.cumsum()
-		signals.signal[(signals.positions < -1.0) & (signals.mavg_signal < 0) & (signals.rsi_signal < 0)] = 0.0
-		signals.positions = signals.signal.cumsum()
-		signals.signal[(signals.positions < 0) & (signals.macd_signal.diff() == 2.0)] = 1.0	
-		signals.positions = signals.signal.cumsum()
-
 		return signals
 
 class MarketOnClosePortfolio(Portfolio):
@@ -172,16 +143,12 @@ if __name__ == "__main__":
 	symbol = input()
 	symbol.upper()
 	print("You entered: " + symbol)
-	print("Enter the period for the short window: ")
-	short_window = input()
-	short_window = int(short_window)
-	print("Enter the period for the long window: ")
-	long_window = input()
-	long_window = int(long_window)
 	
 	# Obtain bars of symbol from the saved file
-	bars = pd.read_csv(filename, header=None, index_col=False, names=['Date', 'Close', 'High', 'Low', 'Open', 'Volume'])
-	bars['Date'] = bars['Date'].map(lambda v: datetime.datetime.fromtimestamp(v) if v < 25000 else datetime.datetime.fromtimestamp(v))
+	bars = pd.read_csv(
+		filename, header=None, index_col=False, names=['Date', 'Close', 'High', 'Low', 'Open', 'Volume'])
+	bars['Date'] = bars['Date'].map(
+		lambda v: datetime.datetime.fromtimestamp(v) if v < 25000 else datetime.datetime.fromtimestamp(v))
 	#Convert date from numpy Datetime64 format to float days format and then to a list of labels for the x axis
 	Dates = [md.date2num(t) for t in bars.Date]
 	bars['Dates'] = Dates
@@ -191,11 +158,11 @@ if __name__ == "__main__":
 		iso_days.append(datetime.date.isoformat(md.num2date(days[0][n])))
 		
 	# Calculate technical analyses of symbol
-	technicals = TechnicalAnalysis(symbol, bars, short_window, long_window)
+	technicals = TechnicalAnalysis(symbol, bars, short_window=150, long_window=200)
 	ema, rsi, macd = technicals.generate_analysis()
 
 	# Create a Strategy instance from technicals and input windows
-	mac = MovingCrossRSIMACD(symbol, bars, short_window, long_window, ema, rsi, macd)
+	mac = MovingCrossRSIMACD(symbol, bars, short_window=150, long_window=200, ema, rsi, macd)
 	signals = mac.generate_signals()
 	
 	# Create a portfolio of symbol, with $10,000 initial capital. 
@@ -217,8 +184,10 @@ if __name__ == "__main__":
 	lma_line, = ax1.plot(bars.index, ema.long_mavg, 'g', lw=2.)
 	
 	# Plot the buy and sell trades against symbol
-	buy_signals, = ax1.plot(signals.ix[signals.signal == 1.0].index, bars.Close[signals.signal == 1.0], '^', markersize=10, color='m')
-	sell_signals, = ax1.plot(signals.ix[signals.signal == -1.0].index, bars.Close[signals.signal == -1.0], 'v', markersize=10, color='b')
+	buy_signals, = ax1.plot(
+		signals.ix[signals.signal == 1.0].index, bars.Close[signals.signal == 1.0], '^', markersize=10, color='m')
+	sell_signals, = ax1.plot(
+		signals.ix[signals.signal == -1.0].index, bars.Close[signals.signal == -1.0], 'v', markersize=10, color='b')
 
 	# Plot the RSI
 	rsi_line, = ax2.plot(bars.index, rsi, color='y')
@@ -240,10 +209,10 @@ if __name__ == "__main__":
 	ax4.set_xticklabels(iso_days, rotation=45, horizontalalignment='right')
 	
 	# Plot the "buy" and "sell" trades against the equity curve
-	buy_returns, = ax4.plot(returns.ix[signals.signal == 1.0].index, returns.total[signals.signal == 1.0], '^', markersize=10, color='m')
-	sell_returns, = ax4.plot(returns.ix[signals.signal == -1.0].index, returns.total[signals.signal == -1.0], 'v', markersize=10, color='b')
-	#ax4.plot(returns.ix[signals.positions == 2.0].index, returns.total[signals.positions == 2.0], '^', markersize=10, color='m')
-	#ax4.plot(returns.ix[signals.positions == -2.0].index, returns.total[signals.positions == -2.0], 'v', markersize=10, color='b')'''
+	buy_returns, = ax4.plot(
+		returns.ix[signals.signal == 1.0].index, returns.total[signals.signal == 1.0], '^', markersize=10, color='m')
+	sell_returns, = ax4.plot(
+		returns.ix[signals.signal == -1.0].index, returns.total[signals.signal == -1.0], 'v', markersize=10, color='b')
 	
 	# Create sliders
 	slider_color = 'lightgoldenrodyellow'
@@ -252,8 +221,8 @@ if __name__ == "__main__":
 	axrsi = plt.axes([0.2, 0.07, 0.6, 0.03], axisbg=slider_color)
 	axmacd = plt.axes([0.2, 0.04, 0.6, 0.03], axisbg=slider_color)
 	
-	ssma = mw.Slider(axsma, 'Short Moving Average Period', 1, 390, valinit=short_window)
-	slma = mw.Slider(axlma, 'Long Moving Average Period', 1, 390, valinit=long_window)
+	ssma = mw.Slider(axsma, 'Short Moving Average Period', 1, 390, valinit=150)
+	slma = mw.Slider(axlma, 'Long Moving Average Period', 1, 390, valinit=200)
 	srsi = mw.Slider(axrsi, 'RSI Period', 1, 390, valinit=100)
 	smacd = mw.Slider(axmacd, 'MACD Signal Period', 1, 390, valinit=50)
 	
@@ -262,29 +231,43 @@ if __name__ == "__main__":
 		lma_val = int(round(slma.val))
 		rsi_val = int(round(srsi.val))
 		macd_val = int(round(smacd.val))
+		new_technicals = TechnicalAnalysis(symbol, bars, sma_val, lma_val, rsi_val, macd_val)
 		technicals.short_window = sma_val
 		technicals.long_window = lma_val
 		technicals.rsi_per = rsi_val
 		technicals.macd_per = macd_val
-		new_ema, new_rsi, new_macd = technicals.generate_analysis()
+		new_ema, new_rsi, new_macd = new_technicals.generate_analysis()
 		sma_line.set_ydata(new_ema.short_mavg)
 		lma_line.set_ydata(new_ema.long_mavg)
 		rsi_line.set_ydata(new_rsi)
+		new_mac = MovingAverageCrossStrategy(symbol, bars, sma_val, lma_val, new_ema, new_rsi, new_macd, new_technicals.rsi_per)
+		mac.ema = new_ema
 		mac.rsi = new_rsi
 		mac.macd = new_macd
-		signals = mac.generate_signals()
+		mac.rsi_per = new_technicals.rsi_per
+		signals = new_mac.generate_signals()
 		new_portfolio = MarketOnClosePortfolio(symbol, bars, signals)
-		print(new_portfolio.generate_positions()[740:760])
 		new_returns = new_portfolio.backtest_portfolio()
 		for coll in (ax3.collections):
 			ax3.collections.remove(coll)
 		ax3.fill_between(bars.index, 0, new_macd.macd - new_macd.signal, facecolor='green')	
+		macd_line.set_ydata(new_macd.macd)
 		macd_signal.set_ydata(new_macd.signal)
+		ax3.set_ylim([new_macd.macd.min(), new_macd.macd.max()])
 		returns_line.set_ydata(new_returns.total)
+		returns_max = math.ceil(new_returns.total.max()) + 1
+		while (returns_max > new_returns.total.max()) & (returns_max % 50 != 0):
+			returns_max += 1
+		returns_min = 10000 - (returns_max - 10000)
+		ax4.set_ylim([returns_min, returns_max])
 		buy_signals.set_data(signals.ix[signals.signal == 1.0].index, bars.Close[signals.signal == 1.0])
+		buy_signals2.set_data(signals.ix[signals.signal == 2.0].index, bars.Close[signals.signal == 2.0])
 		sell_signals.set_data(signals.ix[signals.signal == -1.0].index, bars.Close[signals.signal == -1.0])
+		sell_signals2.set_data(signals.ix[signals.signal == -2.0].index, bars.Close[signals.signal == -2.0])
 		buy_returns.set_data(new_returns.ix[signals.signal == 1.0].index, new_returns.total[signals.signal == 1.0])
+		buy_returns2.set_data(new_returns.ix[signals.signal == 2.0].index, new_returns.total[signals.signal == 2.0])
 		sell_returns.set_data(new_returns.ix[signals.signal == -1.0].index, new_returns.total[signals.signal == -1.0])
+		sell_returns2.set_data(new_returns.ix[signals.signal == -2.0].index, new_returns.total[signals.signal == -2.0])
 		plt.draw()
 	
 	ssma.on_changed(update)
