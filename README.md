@@ -4,6 +4,6 @@ Excerpts of code for analyzing stock data and identifying trends
 
 Next Steps:
 
-sql database setup
-chron jobs for daily updates
-research tried and true machine learning techniques
+1. sql database setup
+1. chron jobs for daily updates
+1. research tried and true machine learning techniques
