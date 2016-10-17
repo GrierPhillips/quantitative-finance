@@ -28,4 +28,5 @@ if not os.path.exists('../Records'):
 s_p_500.to_csv('../Records/S&P_500_Equities.csv', index=False)
 
 # TODO: Change name of file to index equity ticker collector.
-# TODO: Add functions to collect Nasdaq and DJIA equities
+# TODO: Add functions to collect Nasdaq (http://www.advfn.com/nasdaq/nasdaq.asp)
+# and DJIA equities (https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average)
