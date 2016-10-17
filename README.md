@@ -4,6 +4,6 @@ Excerpts of code for analyzing stock data and identifying trends
 
 Next Steps:
 
-Explore app interface for testing various algorithms. 
-
-Write method for testing all iterations of variables for technicals used in algorithm. 
+1. sql database setup
+1. chron jobs for daily updates
+1. research tried and true machine learning techniques
