@@ -11,7 +11,8 @@ soup = BeautifulSoup(html, 'html.parser')
 table = soup.find(class_='wikitable sortable')
 
 # Extract values from table
-records = pd.DataFrame(header=['Symbol', 'Name', 'Sector'])
+
+records = []
 rows = table.findAll('tr')
 for row in rows:
     cells = row.findAll('td')
@@ -19,4 +20,6 @@ for row in rows:
         symbol = cells[0].string
         name = cells[1].string
         sector = cells[2].string
-        records.app
+        records.append([symbol, name, sector])
+s_p_500 = pd.DataFrame(records, columns=['Symbol', 'Name', 'Sector'])
+s_p_500.to_csv('../Records/S&P_500_Equities.csv', index=False)
