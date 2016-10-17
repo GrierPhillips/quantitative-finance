@@ -2,6 +2,7 @@
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+import os
 
 # Get wikipedia's list of S&P 500 equities table
 source = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
@@ -22,4 +23,6 @@ for row in rows:
         sector = cells[2].string
         records.append([symbol, name, sector])
 s_p_500 = pd.DataFrame(records, columns=['Symbol', 'Name', 'Sector'])
+if not os.path.exists('../Records'):
+    os.mkdir('../Records')
 s_p_500.to_csv('../Records/S&P_500_Equities.csv', index=False)
