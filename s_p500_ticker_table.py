@@ -26,3 +26,6 @@ s_p_500 = pd.DataFrame(records, columns=['Symbol', 'Name', 'Sector'])
 if not os.path.exists('../Records'):
     os.mkdir('../Records')
 s_p_500.to_csv('../Records/S&P_500_Equities.csv', index=False)
+
+# TODO: Change name of file to index equity ticker collector.
+# TODO: Add functions to collect Nasdaq and DJIA equities

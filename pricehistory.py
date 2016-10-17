@@ -29,6 +29,9 @@ class PriceHistoryBuilder:
         # data['Date'] = data.apply(lambda x: x.Date + x.Timestamp if x.Date < threshold else x.Date, axis=1)
         # data = data.drop('Timestamp', axis=1)
         data['Date'] = data['Date'].apply(lambda x: dt.datetime.utcfromtimestamp(int(x[1:])))
+        if not os.path.exists('../Records'):
+            os.mkdir('../Records')
+        os.chdir('../Records')
         if os.path.isfile(self.filename):
             orig_data = pd.read_csv(self.filename, parse_dates=['Date'])
             out = pd.concat([orig_data, data], ignore_index=True)
@@ -38,5 +41,5 @@ class PriceHistoryBuilder:
         else:
             data.to_csv(self.filename, index=False)
 
-# TODO: Change storage location to sql db from csv.
+# TODO: Change storage location to sql db or hdf from csv.
 # TODO: Automate time of collection with chron.
